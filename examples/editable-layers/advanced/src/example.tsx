@@ -17,19 +17,11 @@ import {
   DrawPolygonByDraggingMode,
   ViewMode,
   SnappableMode,
-  ElevatedEditHandleLayer,
   GeoJsonEditMode,
-  Color,
+  Color
 } from '@deck.gl-community/editable-layers';
 
-import iconSheet from '../../data/edit-handles.png';
-
-import {
-  Toolbox,
-  ToolboxTitle,
-  ToolboxRow,
-  ToolboxButton,
-} from './toolbox';
+import {Toolbox, ToolboxTitle, ToolboxRow, ToolboxButton} from './toolbox';
 
 type RGBAColor = Color;
 
@@ -122,7 +114,6 @@ export function Example() {
     allowSelfIntersection: false
   });
   const [selectedFeatureIndexes, setSelectedFeatureIndexes] = useState<number[]>([]);
-  const [editHandleType] = useState<string>('point');
   const [selectionTool, setSelectionTool] = useState<string | undefined>(undefined);
 
   const getDefaultModeConfig = useCallback((mode: any) => {
@@ -134,7 +125,6 @@ export function Example() {
 
   const onLayerClick = useCallback(
     (info: any) => {
-      console.log('onLayerClick', info); // eslint-disable-line
       if (mode !== ViewMode || selectionTool) {
         return;
       }
@@ -155,8 +145,7 @@ export function Example() {
       const length = FEATURE_COLORS.length;
       const color = FEATURE_COLORS[index % length].map((c) => c * bright * 255);
 
-      // @ts-expect-error TODO
-      return [...color, alpha * 255];
+      return [...color, alpha * 255] as RGBAColor;
     },
     []
   );
@@ -170,6 +159,7 @@ export function Example() {
             {category.modes.map(({mode: modeOption, label}) => (
               <ToolboxButton
                 key={label}
+                // @ts-expect-error types not updated
                 selected={mode === modeOption}
                 onClick={() => {
                   setMode(() => modeOption);
@@ -184,7 +174,7 @@ export function Example() {
         ))}
       </Toolbox>
     );
-  }, [mode, testFeatures, editHandleType, getDefaultModeConfig]);
+  }, [mode, testFeatures, getDefaultModeConfig]);
 
   const renderStaticMap = useCallback((currentViewport: Record<string, any>) => {
     return (
@@ -198,30 +188,6 @@ export function Example() {
   const onEdit = useCallback(
     ({updatedData, editType, editContext}) => {
       let updatedSelectedFeatureIndexes = selectedFeatureIndexes;
-
-      if (
-        ![
-          'movePosition',
-          'extruding',
-          'rotating',
-          'translating',
-          'scaling',
-          'updateTentativeFeature'
-        ].includes(editType)
-      ) {
-        const updatedDataInfo = featuresToInfoString(updatedData);
-        // eslint-disable-next-line
-        console.log('onEdit', editType, editContext, updatedDataInfo);
-
-        if (editType === 'addHole' || editType === 'invalidHole') {
-          // eslint-disable-next-line
-          console.log('🕳️ Hole event:', editType, editContext);
-        }
-      }
-
-      if (editType === 'removePosition') {
-        return;
-      }
 
       if (editType === 'addFeature' && mode !== DuplicateMode) {
         const {featureIndexes} = editContext;
@@ -254,7 +220,6 @@ export function Example() {
     [testFeatures.features, getDeckColorForFeature]
   );
 
-  // eslint-disable-next-line complexity
   const currentViewport: Record<string, any> = {
     ...viewport,
     height: window.innerHeight,
@@ -320,87 +285,29 @@ export function Example() {
       getColor: [255, 255, 255, 255]
     }
   };
-
-  if (editHandleType === 'elevated') {
-    _subLayerProps = Object.assign(_subLayerProps, {
-      guides: {
-        _subLayerProps: {
-          points: {
-            type: ElevatedEditHandleLayer,
-            getFillColor: [0, 255, 0]
-          }
-        }
-      }
-    });
-  }
-
+  // @ts-expect-error TODO
   const editableGeoJsonLayer = new EditableGeoJsonLayer({
     id: 'geojson',
     data: testFeatures,
-    // @ts-expect-error TODO
     selectedFeatureIndexes,
     mode,
     modeConfig: currentModeConfig,
     autoHighlight: false,
-
     onEdit,
-
-    editHandleType,
-
-    editHandleIconAtlas: iconSheet,
-    editHandleIconMapping: {
-      intermediate: {
-        x: 0,
-        y: 0,
-        width: 58,
-        height: 58,
-        mask: false
-      },
-      existing: {
-        x: 58,
-        y: 0,
-        width: 58,
-        height: 58,
-        mask: false
-      },
-      'snap-source': {
-        x: 58,
-        y: 0,
-        width: 58,
-        height: 58,
-        mask: false
-      },
-      'snap-target': {
-        x: 0,
-        y: 0,
-        width: 58,
-        height: 58,
-        mask: false
-      }
-    },
-    getEditHandleIcon: (d) => getEditHandleTypeFromEitherLayer(d),
-    getEditHandleIconSize: 40,
-    getEditHandleIconColor: getEditHandleColor,
-
+    editHandleType: 'point',
     lineWidthMinPixels: 2,
     pointRadiusMinPixels: 5,
     getLineDashArray: () => [0, 0],
-
     getFillColor,
     getLineColor,
-
     getEditHandlePointColor: getEditHandleColor,
     editHandlePointRadiusScale: 2,
-
     getTentativeLineDashArray: () => [7, 4],
     getTentativeLineColor: () => [0x8f, 0x8f, 0x8f, 0xff],
-
     _subLayerProps,
-
     parameters: {
       depthTest: true,
       depthMask: false,
-
       blend: true,
       blendEquation: GL.FUNC_ADD,
       blendFunc: [GL.SRC_ALPHA, GL.ONE_MINUS_SRC_ALPHA]
@@ -432,6 +339,7 @@ export function Example() {
       <DeckGL
         viewState={currentViewport}
         getCursor={editableGeoJsonLayer.getCursor.bind(editableGeoJsonLayer)}
+        // @ts-expect-error Type mismatch: 'EditableGeoJsonLayer[]' is not assignable to type 'LayersList'.
         layers={layers}
         height="100%"
         width="100%"
@@ -452,34 +360,4 @@ export function Example() {
       {renderToolBox()}
     </div>
   );
-}
-
-export default Example;
-
-function featuresToInfoString(featureCollection: any): string {
-  const info = featureCollection.features.map(
-    (feature) => `${feature.geometry.type}(${getPositionCount(feature.geometry)})`
-  );
-
-  return JSON.stringify(info);
-}
-
-function getPositionCount(geometry): number {
-  const flatMap = (f, arr) => arr.reduce((x, y) => [...x, ...f(y)], []);
-
-  const {type, coordinates} = geometry;
-  switch (type) {
-    case 'Point':
-      return 1;
-    case 'LineString':
-    case 'MultiPoint':
-      return coordinates.length;
-    case 'Polygon':
-    case 'MultiLineString':
-      return flatMap((x) => x, coordinates).length;
-    case 'MultiPolygon':
-      return flatMap((x) => flatMap((y) => y, x), coordinates).length;
-    default:
-      throw Error(`Unknown geometry type: ${type}`);
-  }
 }
